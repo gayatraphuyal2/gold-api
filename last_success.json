@@ -1,26 +1,26 @@
 {
   "source": "calendar-event.pages.dev",
   "status": "live",
-  "date": "2082-10-25",
+  "date": "2082-10-28",
   "unit": "tola",
   "rates": [
     {
       "id": "gold",
       "title": "छापावाल सुन",
-      "price": 805600,
-      "previous": 306600,
+      "price": 306600,
+      "previous": 805600,
       "change": 499000,
-      "percent": 162.75,
-      "direction": "up"
+      "percent": 61.94,
+      "direction": "down"
     },
     {
       "id": "silver",
       "title": "चाँदी",
-      "price": 9240,
-      "previous": 5290,
+      "price": 5290,
+      "previous": 9240,
       "change": 3950,
-      "percent": 74.67,
-      "direction": "up"
+      "percent": 42.75,
+      "direction": "down"
     }
   ]
 }
