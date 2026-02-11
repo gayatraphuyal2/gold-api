@@ -1,0 +1,24 @@
+{
+  "unit": "tola",
+  "data": [
+    {
+      "date": "2026-02-11",
+      "gold": 10,
+      "silver": 2013
+    },
+    {
+      "date": "2082-10-25",
+      "gold": 805600,
+      "silver": 9240,
+      "goldDirection": "up",
+      "silverDirection": "up"
+    },
+    {
+      "date": "2082-10-28",
+      "gold": 306600,
+      "silver": 5290,
+      "goldDirection": "down",
+      "silverDirection": "down"
+    }
+  ]
+}
