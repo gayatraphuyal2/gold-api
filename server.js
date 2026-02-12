@@ -1,15 +1,19 @@
 // ====================== Imports ======================
 const express = require("express");
 const axios = require("axios");
+const cheerio = require("cheerio");
 const cors = require("cors");
 const fs = require("fs");
+const cron = require("node-cron");
 const { exec } = require("child_process");
 
 const app = express();
 app.use(cors());
 
+
+
 // ====================== Config ======================
-const SOURCE_URL = "https://calendar-event.pages.dev/data/gold.json";
+const SOURCE_URL = "https://fenegosida.org/";
 const CACHE_FILE = "./last_success.json";
 
 // ====================== Utils ======================
@@ -17,7 +21,16 @@ function todayDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
-// ====================== Cache Helpers ======================
+function parsePrice(text) {
+  if (!text) return null;
+  const n = Number(text.replace(/[^\d]/g, ""));
+  return isNaN(n) ? null : n;
+}
+
+
+
+
+// ====================== Cache ======================
 function loadCache() {
   if (!fs.existsSync(CACHE_FILE)) return null;
   try {
@@ -52,32 +65,68 @@ function saveCache(data) {
   }
 }
 
-// ====================== Fetch External JSON ======================
-async function fetchExternal() {
+// ====================== Nepali Date ======================
+const nepaliMonths = {
+  Baishakh: "01", Jestha: "02", Ashadh: "03", Shrawan: "04",
+  Bhadra: "05", Ashwin: "06", Kartik: "07", Mangsir: "08",
+  Poush: "09", Magh: "10", Falgun: "11", Chaitra: "12"
+};
+
+function formatNepaliDate(dateStr) {
+  const m = dateStr.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+  if (!m) return null;
+  const day = m[1].padStart(2, "0");
+  const month = nepaliMonths[m[2]];
+  const year = m[3];
+  if (!month) return null;
+  return `${year}-${month}-${day}`;
+}
+
+// ====================== Notification ======================
+
+
+// ====================== Scraper ======================
+async function scrapeFenegosida() {
   try {
-    const { data } = await axios.get(SOURCE_URL, { timeout: 15000 });
+    const { data } = await axios.get(SOURCE_URL, {
+      timeout: 15000,
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120" }
+    });
 
-    if (!data || !Array.isArray(data.rates)) throw new Error("Invalid JSON");
+    const $ = cheerio.load(data);
+    let gold = null, silver = null;
 
-    const gold = data.rates.find(r => r.id === "gold")?.price ?? 0;
-    const silver = data.rates.find(r => r.id === "silver")?.price ?? 0;
+    $("*").each((_, el) => {
+      const text = $(el).text().replace(/\s+/g, " ");
+      if (!gold && /FINE GOLD/i.test(text)) {
+        const m = text.match(/[₹रु]\s*([\d,]+)/);
+        if (m) gold = parsePrice(m[1]);
+      }
+      if (!silver && /SILVER/i.test(text)) {
+        const all = [...text.matchAll(/[₹रु]\s*([\d,]+)/g)];
+        if (all.length) silver = parsePrice(all[all.length - 1][1]);
+      }
+    });
 
-    return {
-      date: data.date || todayDate(),
-      gold,
-      silver
-    };
+    if (!gold || !silver) throw new Error("Scraping failed");
+
+    // Get site date
+    let siteDate = null;
+    const bodyText = $("body").text().replace(/\s+/g, " ");
+    const d = bodyText.match(/\d{1,2}\s+[A-Za-z]+\s+\d{4}/);
+    if (d) siteDate = formatNepaliDate(d[0]);
+
+    return { date: siteDate || todayDate(), gold, silver };
   } catch (err) {
-    console.error("⚠️ Fetch error:", err.message);
-    return null;
+    console.warn("⚠️ Live fetch failed:", err.message);
+    throw err; // IMPORTANT
   }
 }
 
-// ====================== Auto Update Loop ======================
-// ====================== Auto Update Loop ======================
+
 async function autoUpdate() {
   try {
-    const externalData = await fetchExternal();
+    const externalData = await scrapeFenegosida();
     if (!externalData) return;
 
     const cached = loadCache();
@@ -107,8 +156,8 @@ async function autoUpdate() {
 }
 
 // Run every 60 seconds (1 minute)
-setInterval(autoUpdate, 60 * 1000);
-
+autoUpdate(); // run immediately
+setInterval(autoUpdate, 5 * 60 * 1000);
 
 // ====================== API ======================
 app.get("/prices", (req, res) => {
