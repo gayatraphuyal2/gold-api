@@ -124,21 +124,41 @@ async function scrapeFenegosida() {
 }
 
 
+function isWithinUpdateTime() {
+  const now = new Date();
+
+  // Nepal time (Asia/Kathmandu)
+  const local = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Kathmandu" })
+  );
+
+  const hours = local.getHours();
+  const minutes = local.getMinutes();
+  const totalMinutes = hours * 60 + minutes;
+
+  const start = 10 * 60 + 30; // 10:30 AM
+  const end = 13 * 60;        // 1:00 PM
+
+  return totalMinutes >= start && totalMinutes <= end;
+}
+
 async function autoUpdate() {
   try {
+    if (!isWithinUpdateTime()) {
+      return; // ⛔ outside allowed time
+    }
+
     const externalData = await scrapeFenegosida();
     if (!externalData) return;
 
     const cached = loadCache();
 
-    // Compare date & price
     if (
       !cached ||
       cached.date !== externalData.date ||
       cached.rates[0].price !== externalData.gold ||
       cached.rates[1].price !== externalData.silver
     ) {
-      // Update local cache
       const newCache = {
         date: externalData.date,
         status: "ok",
@@ -148,16 +168,19 @@ async function autoUpdate() {
           { id: "silver", title: "चाँदी", price: externalData.silver }
         ]
       };
+
       saveCache(newCache);
+      console.log("✅ Updated during allowed time");
     }
+
   } catch (err) {
     console.warn("⚠️ Auto-update error:", err.message);
   }
 }
 
-// Run every 60 seconds (1 minute)
-autoUpdate(); // run immediately
+// Run every 5 minutes
 setInterval(autoUpdate, 5 * 60 * 1000);
+
 
 // ====================== API ======================
 app.get("/prices", (req, res) => {
