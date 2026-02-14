@@ -136,7 +136,7 @@ function isWithinUpdateTime() {
   const minutes = local.getMinutes();
   const totalMinutes = hours * 60 + minutes;
 
-  const start = 10 * 60 + 30; // 10:30 AM
+  const start = 10 * 60 + 13; // 10:13 AM
   const end = 13 * 60;        // 1:00 PM
 
   return totalMinutes >= start && totalMinutes <= end;
