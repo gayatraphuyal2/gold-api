@@ -1,5 +1,5 @@
 {
-  "date": "2082-11-07",
+  "date": "2082-11-08",
   "status": "ok",
   "unit": "tola",
   "rates": [
@@ -11,7 +11,7 @@
     {
       "id": "silver",
       "title": "चाँदी",
-      "price": 5060
+      "price": 5050
     }
   ]
 }
